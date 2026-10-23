@@ -30,6 +30,23 @@ class ChatConfigTest extends TestCase
         $this->assertSame([], $cfg->problems);
     }
 
+    public function test_free_faq_assistant_token_and_no_secret(): void
+    {
+        $cfg = $this->config(['widget_token' => 'free-laravel', 'widget_secret' => 'ws_secret12345678']);
+        $this->assertTrue($cfg->configured());
+        $this->assertSame([], $cfg->problems);
+        $this->assertSame('free-laravel', $cfg->widgetToken);
+        // Free chats are always anonymous: the secret is not used
+        $this->assertSame('', $cfg->widgetSecret);
+    }
+
+    public function test_other_free_tokens_are_rejected(): void
+    {
+        $cfg = $this->config(['widget_token' => 'free-wordpress']);
+        $this->assertFalse($cfg->configured());
+        $this->assertCount(1, $cfg->problems);
+    }
+
     public static function hostUrls(): array
     {
         return [

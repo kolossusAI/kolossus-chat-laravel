@@ -29,6 +29,35 @@ run it again after changing them.
 
 Windows PowerShell 5 does not understand `&&`: run the two commands one after the other.
 
+## Free FAQ assistant (no Kolossus account needed)
+
+No Kolossus account yet? Use the free FAQ assistant. It answers your visitors'
+questions about your website: products, prices, policies, opening hours,
+contact details and more.
+
+```sh
+composer require kolossusai/chat-laravel && php artisan kolossus:install
+```
+
+That's it: every page now shows the chat bubble. On a server, set
+`KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel` where your host keeps environment variables.
+
+**What you get**
+
+* Answers based on your website's public pages.
+* **10 free messages per visitor.**
+* Visitors chat anonymously.
+
+**Good to know**
+
+* It works on your live website. On `localhost` it can't answer yet.
+* It can't answer about orders, accounts or anything behind a login.
+* You can change the colour, layout, bubble corner, size and more: see [Look](#look) below.
+
+**Need more?** For more messages or your own trained agent, contact the
+KolossusAI team at [kolossusai.in](https://kolossusai.in), then switch to your
+widget token: `php artisan kolossus:install wt_YOUR_TOKEN`
+
 ## Put the chat where you want it
 
 The bubble is added to every page of the `web` middleware group, just before

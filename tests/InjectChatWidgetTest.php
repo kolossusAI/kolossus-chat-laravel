@@ -163,6 +163,17 @@ class InjectChatWidgetTest extends TestCase
         $this->assertStringNotContainsString(self::SECRET, $html);
     }
 
+    public function test_free_faq_assistant_page_and_no_signing(): void
+    {
+        config(['kolossus-chat.widget_token' => 'free-laravel', 'kolossus-chat.widget_secret' => self::SECRET]);
+        $user = new GenericUser(['id' => 1, 'email' => 'ann@example.com', 'name' => 'Ann', 'remember_token' => null]);
+        $html = $this->actingAs($user)->get('/')->getContent();
+        $this->assertStringContainsString('data-kolossus="free-laravel"', $html);
+        $this->assertStringContainsString($this->scriptTag(), $html);
+        // Free chats are always anonymous
+        $this->assertStringNotContainsString('data-user', $html);
+    }
+
     public function test_user_fields_that_are_not_text_do_not_hide_the_chat(): void
     {
         config(['kolossus-chat.widget_secret' => self::SECRET]);

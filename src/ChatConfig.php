@@ -18,6 +18,9 @@ final class ChatConfig
 
     public const TOKEN_PATTERN = '/^wt_[A-Za-z0-9]{8,128}$/';
 
+    /** The free FAQ assistant's token (no Kolossus account): kolossus:install without a token. */
+    public const FREE_TOKEN = 'free-laravel';
+
     public const SECRET_PATTERN = '/^ws_[A-Za-z0-9]{8,128}$/';
 
     public const MAX_OFFSET = 1000;
@@ -77,7 +80,9 @@ final class ChatConfig
         }
 
         $token = self::text($raw, 'widget_token');
-        if (str_starts_with($token, 'ws_')) {
+        if ($token === self::FREE_TOKEN) {
+            $cfg->widgetToken = $token;
+        } elseif (str_starts_with($token, 'ws_')) {
             $cfg->problems[] = 'KOLOSSUS_CHAT_WIDGET_TOKEN holds the widget secret (ws_...). Put it in '
                 .'KOLOSSUS_CHAT_WIDGET_SECRET instead; the widget token is the public one that starts with wt_.';
         } elseif ($token !== '' && ! preg_match(self::TOKEN_PATTERN, $token)) {
@@ -87,7 +92,9 @@ final class ChatConfig
         }
 
         $secret = self::text($raw, 'widget_secret');
-        if ($secret !== '' && preg_match(self::SECRET_PATTERN, $secret)) {
+        if ($cfg->widgetToken === self::FREE_TOKEN) {
+            // The free FAQ assistant has no secret: its chats are always anonymous.
+        } elseif ($secret !== '' && preg_match(self::SECRET_PATTERN, $secret)) {
             $cfg->widgetSecret = $secret;
         } elseif ($secret !== '') {
             $cfg->problems[] = 'KOLOSSUS_CHAT_WIDGET_SECRET should start with ws_ followed by letters and numbers.';

@@ -7,6 +7,7 @@ use KolossusAI\Chat\ChatConfig;
 
 /**
  * php artisan kolossus:install wt_YOUR_TOKEN [--host=https://kolossus.example.com]
+ * php artisan kolossus:install          (free FAQ assistant, when .env has no token yet)
  * php artisan kolossus:install --undo
  *
  * Writes the Host URL and public widget token into .env. A line that already sets one
@@ -16,7 +17,7 @@ use KolossusAI\Chat\ChatConfig;
 class InstallCommand extends Command
 {
     protected $signature = 'kolossus:install
-        {token? : Your public widget token (wt_...), from Kolossus}
+        {token? : Your public widget token (wt_...), from Kolossus; leave out for the free FAQ assistant}
         {--host= : Your Kolossus server (default: '.ChatConfig::CLOUD_HOST_URL.')}
         {--undo : Remove the KolossusAI Chat lines from .env}';
 
@@ -42,12 +43,14 @@ class InstallCommand extends Command
         }
 
         $path = $this->laravel->environmentFilePath();
+        // The lines to add by hand: with no token and no --host, the free FAQ assistant's.
+        $handToken = ! $undo && $token === '' && $host === '' ? ChatConfig::FREE_TOKEN : $token;
         if (! is_file($path)) {
-            return $this->failWith("No .env file at {$path}. Run this in your Laravel project folder, or add these lines to your .env by hand:", $token, $host);
+            return $this->failWith("No .env file at {$path}. Run this in your Laravel project folder, or add these lines to your .env by hand:", $handToken, $host);
         }
         $text = is_readable($path) ? @file_get_contents($path) : false;
         if ($text === false) {
-            return $this->failWith("Could not read {$path}.", $token, $host);
+            return $this->failWith("Could not read {$path}.", $handToken, $host);
         }
 
         if ($undo) {
@@ -68,7 +71,19 @@ class InstallCommand extends Command
                 return self::SUCCESS;
             }
 
-            return $this->failWith('Pass your widget token: php artisan kolossus:install wt_YOUR_TOKEN (copy the command from your widget in Kolossus → Plugins → Laravel).');
+            // A Kolossus server of your own (not the cloud): the free assistant is cloud-only,
+            // so leave that line alone and ask for the token as before.
+            $currentHost = $this->currentValue($text, self::HOST_KEY);
+            if ($currentHost !== '' && ChatConfig::cleanHostUrl($currentHost) !== ChatConfig::CLOUD_HOST_URL) {
+                return $this->failWith('Pass your widget token: php artisan kolossus:install wt_YOUR_TOKEN (copy the command from your widget in Kolossus → Plugins → Laravel).');
+            }
+
+            // No token anywhere yet: the free FAQ assistant (no Kolossus account needed).
+            try {
+                return $this->install($path, $text, ChatConfig::CLOUD_HOST_URL, ChatConfig::FREE_TOKEN);
+            } catch (\RuntimeException $e) {
+                return $this->failWith($e->getMessage().' Add these lines to your .env by hand:', ChatConfig::FREE_TOKEN);
+            }
         }
         if (str_starts_with($token, 'ws_')) {
             return $this->failWith('That is the widget secret (ws_...). Keep it private; pass the public widget token, which starts with wt_.');
@@ -114,6 +129,15 @@ class InstallCommand extends Command
             $this->write($path, $new);
             $this->info("Done. KolossusAI Chat is set up in {$path}");
         }
+        if ($token === ChatConfig::FREE_TOKEN) {
+            $this->line('Free FAQ assistant turned on (no Kolossus account needed): it answers your visitors from your '
+                .'website\'s public pages, 10 free messages per visitor. It answers once the site is live on its domain. '
+                .'To use your own Kolossus widget instead: php artisan kolossus:install wt_YOUR_TOKEN');
+            $this->afterChange();
+            $this->line('Every page now shows the chat bubble.');
+
+            return self::SUCCESS;
+        }
         $this->line('Widget token '.substr($token, 0, 12)."… on {$hostUrl}");
         $this->afterChange();
         $this->line('Every page now shows the chat bubble. Add your site\'s domain to the widget\'s allowed domains in Kolossus.');
@@ -152,8 +176,13 @@ class InstallCommand extends Command
         if (! preg_match($this->linePattern($key), $text, $match)) {
             return '';
         }
+        $value = trim(substr($match[0], strpos($match[0], '=') + 1));
+        if ($value !== '' && $value[0] !== '"' && $value[0] !== "'") {
+            // As in Laravel's .env reader: " # …" after an unquoted value is a comment
+            $value = preg_replace('/\s+#.*$/', '', $value);
+        }
 
-        return trim(substr($match[0], strpos($match[0], '=') + 1), " \t\"'");
+        return trim($value, " \t\"'");
     }
 
     private function write(string $path, string $text): void
@@ -174,7 +203,7 @@ class InstallCommand extends Command
     private function failWith(string $message, string $token = '', string $host = ''): int
     {
         $this->error($message);
-        if (preg_match(ChatConfig::TOKEN_PATTERN, $token)) {
+        if ($token === ChatConfig::FREE_TOKEN || preg_match(ChatConfig::TOKEN_PATTERN, $token)) {
             $hostUrl = ChatConfig::cleanHostUrl($host !== '' ? $host : ChatConfig::CLOUD_HOST_URL) ?: ChatConfig::CLOUD_HOST_URL;
             $this->line('');
             $this->line('    '.self::HOST_KEY.'='.$hostUrl);

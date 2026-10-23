@@ -87,7 +87,6 @@ class InstallCommandTest extends TestCase
         $this->artisan('kolossus:install', ['token' => 'wt_bad'])->assertFailed();
         $this->artisan('kolossus:install', ['token' => self::TOKEN, '--host' => 'http://192.168.1.5:8005'])->expectsOutputToContain('not accepted')->assertFailed();
         $this->artisan('kolossus:install', ['--host' => 'https://chat.example.com'])->expectsOutputToContain('needs your widget token')->assertFailed();
-        $this->artisan('kolossus:install')->expectsOutputToContain('Pass your widget token')->assertFailed();
         $this->artisan('kolossus:install', ['token' => self::TOKEN, '--undo' => true])->assertFailed();
         $this->assertSame("APP_NAME=Shop\n", $this->env());
     }
@@ -96,6 +95,69 @@ class InstallCommandTest extends TestCase
     {
         $this->env("KOLOSSUS_CHAT_WIDGET_TOKEN=".self::TOKEN."\n");
         $this->artisan('kolossus:install')->expectsOutputToContain('already set up')->assertSuccessful();
+        $this->assertSame("KOLOSSUS_CHAT_WIDGET_TOKEN=".self::TOKEN."\n", $this->env());
+    }
+
+    public function test_no_token_turns_on_the_free_faq_assistant(): void
+    {
+        $this->env("APP_NAME=Shop\n");
+        $this->artisan('kolossus:install')
+            ->expectsOutputToContain('Free FAQ assistant turned on')
+            ->assertSuccessful();
+        $this->assertSame(
+            "APP_NAME=Shop\n\n# KolossusAI Chat (remove with: php artisan kolossus:install --undo)\n"
+            ."KOLOSSUS_CHAT_HOST_URL=https://engine.kolossus.ai\nKOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel\n",
+            $this->env()
+        );
+        // Again: already set up, nothing changes
+        $this->artisan('kolossus:install')->expectsOutputToContain('already set up')->assertSuccessful();
+        // Own token later replaces the free one in place
+        $this->artisan('kolossus:install', ['token' => self::TOKEN])->assertSuccessful();
+        $this->assertStringContainsString("KOLOSSUS_CHAT_WIDGET_TOKEN=".self::TOKEN."\n", $this->env());
+        $this->assertStringNotContainsString('free-laravel', $this->env());
+    }
+
+    public function test_no_free_faq_assistant_on_an_own_kolossus_server(): void
+    {
+        $this->env("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com\n");
+        $this->artisan('kolossus:install')->expectsOutputToContain('Pass your widget token')->assertFailed();
+        $this->assertSame("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com\n", $this->env());
+        // The cloud host already in .env is fine
+        $this->env("KOLOSSUS_CHAT_HOST_URL=https://engine.kolossus.ai/\n");
+        $this->artisan('kolossus:install')->assertSuccessful();
+        $this->assertStringContainsString('KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel', $this->env());
+    }
+
+    public function test_cloud_host_with_a_comment_still_gets_the_free_assistant(): void
+    {
+        $this->env("KOLOSSUS_CHAT_HOST_URL=https://engine.kolossus.ai # prod\n");
+        $this->artisan('kolossus:install')->expectsOutputToContain('Free FAQ assistant turned on')->assertSuccessful();
+        $this->assertStringContainsString('KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel', $this->env());
+        // An own server with a comment is still left alone
+        $this->env("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com # ours\n");
+        $this->artisan('kolossus:install')->expectsOutputToContain('Pass your widget token')->assertFailed();
+    }
+
+    public function test_missing_env_file_prints_the_free_lines(): void
+    {
+        $this->artisan('kolossus:install')
+            ->expectsOutputToContain('KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel')
+            ->assertFailed();
+        $this->artisan('kolossus:install', ['--undo' => true])
+            ->doesntExpectOutputToContain('free-laravel')
+            ->assertFailed();
+        $this->assertFileDoesNotExist($this->dir.'/.env');
+    }
+
+    public function test_free_faq_assistant_when_env_cannot_be_written(): void
+    {
+        $this->env("APP_NAME=Shop\n");
+        chmod($this->dir.'/.env', 0444);
+        $this->artisan('kolossus:install')
+            ->expectsOutputToContain('KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel')
+            ->assertFailed();
+        chmod($this->dir.'/.env', 0644);
+        $this->assertSame("APP_NAME=Shop\n", $this->env());
     }
 
     public function test_missing_env_file_prints_the_lines_to_add(): void
