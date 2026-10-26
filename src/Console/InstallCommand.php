@@ -46,7 +46,11 @@ class InstallCommand extends Command
         // The lines to add by hand: with no token and no --host, the free FAQ assistant's.
         $handToken = ! $undo && $token === '' && $host === '' ? ChatConfig::FREE_TOKEN : $token;
         if (! is_file($path)) {
-            return $this->failWith("No .env file at {$path}. Run this in your Laravel project folder, or add these lines to your .env by hand:", $handToken, $host);
+            $why = "No .env file at {$path}. Run this in your Laravel project folder, or add these lines to your .env by hand";
+            // Without them the package uses the free FAQ assistant on the cloud anyway.
+            $why .= $handToken === ChatConfig::FREE_TOKEN ? ' (without them the chat is the free FAQ assistant):' : ':';
+
+            return $this->failWith($why, $handToken, $host);
         }
         $text = is_readable($path) ? @file_get_contents($path) : false;
         if ($text === false) {
@@ -75,7 +79,9 @@ class InstallCommand extends Command
             // so leave that line alone and ask for the token as before.
             $currentHost = $this->currentValue($text, self::HOST_KEY);
             if ($currentHost !== '' && ChatConfig::cleanHostUrl($currentHost) !== ChatConfig::CLOUD_HOST_URL) {
-                return $this->failWith('Pass your widget token: php artisan kolossus:install wt_YOUR_TOKEN (copy the command from your widget in Kolossus → Plugins → Laravel).');
+                return $this->failWith('Your .env points to your own Kolossus server: add your widget token there, '
+                    .self::TOKEN_KEY.'=wt_YOUR_TOKEN (Kolossus → your widget → Plugins → Laravel shows the line), '
+                    .'or pass it: php artisan kolossus:install wt_YOUR_TOKEN');
             }
 
             // No token anywhere yet: the free FAQ assistant (no Kolossus account needed).
@@ -131,8 +137,9 @@ class InstallCommand extends Command
         }
         if ($token === ChatConfig::FREE_TOKEN) {
             $this->line('Free FAQ assistant turned on (no Kolossus account needed): it answers your visitors from your '
-                .'website\'s public pages, 10 free messages per visitor. It answers once the site is live on its domain. '
-                .'To use your own Kolossus widget instead: php artisan kolossus:install wt_YOUR_TOKEN');
+                .'website\'s public pages, 10 free messages per visitor. It answers once the site is live on its domain.');
+            $this->line('Have a KolossusAI widget token? In '.basename($path).' (and on your live server), replace '
+                .ChatConfig::FREE_TOKEN.' with it: '.self::TOKEN_KEY.'=wt_YOUR_TOKEN');
             $this->afterChange();
             $this->line('Every page now shows the chat bubble.');
 
@@ -159,7 +166,10 @@ class InstallCommand extends Command
         $this->write($path, $new);
         $this->info("Removed the KolossusAI Chat lines from {$path}");
         $this->afterChange();
-        $this->line('To remove the package too: composer remove kolossusai/chat-laravel');
+        // With no token set the package shows the free FAQ assistant: only removing it
+        // (or KOLOSSUS_CHAT_SITEWIDE=false) takes the chat off the site.
+        $this->line('While the package is installed the chat stays, as the free FAQ assistant. '
+            .'To remove it: composer remove kolossusai/chat-laravel');
 
         return self::SUCCESS;
     }

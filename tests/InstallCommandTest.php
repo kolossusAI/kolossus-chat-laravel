@@ -120,7 +120,7 @@ class InstallCommandTest extends TestCase
     public function test_no_free_faq_assistant_on_an_own_kolossus_server(): void
     {
         $this->env("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com\n");
-        $this->artisan('kolossus:install')->expectsOutputToContain('Pass your widget token')->assertFailed();
+        $this->artisan('kolossus:install')->expectsOutputToContain('KOLOSSUS_CHAT_WIDGET_TOKEN=wt_YOUR_TOKEN')->assertFailed();
         $this->assertSame("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com\n", $this->env());
         // The cloud host already in .env is fine
         $this->env("KOLOSSUS_CHAT_HOST_URL=https://engine.kolossus.ai/\n");
@@ -135,7 +135,7 @@ class InstallCommandTest extends TestCase
         $this->assertStringContainsString('KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel', $this->env());
         // An own server with a comment is still left alone
         $this->env("KOLOSSUS_CHAT_HOST_URL=https://chat.example.com # ours\n");
-        $this->artisan('kolossus:install')->expectsOutputToContain('Pass your widget token')->assertFailed();
+        $this->artisan('kolossus:install')->expectsOutputToContain('KOLOSSUS_CHAT_WIDGET_TOKEN=wt_YOUR_TOKEN')->assertFailed();
     }
 
     public function test_missing_env_file_prints_the_free_lines(): void

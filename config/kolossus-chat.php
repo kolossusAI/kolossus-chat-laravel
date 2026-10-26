@@ -3,8 +3,9 @@
 /*
  * KolossusAI Chat settings.
  *
- * `php artisan kolossus:install wt_YOUR_TOKEN` writes the Host URL and widget token
- * into your .env file. Everything else is optional. Empty look settings (theme, colour,
+ * `php artisan kolossus:install` writes the Host URL and widget token into your .env
+ * file (free-laravel, the free FAQ assistant, until you put your own token there).
+ * Everything else is optional. Empty look settings (theme, colour,
  * layout, position, offsets, size) mean "use the widget's own setting" from Kolossus.
  * Invalid values are ignored and logged as warnings.
  *
@@ -18,7 +19,10 @@ return [
     'host_url' => env('KOLOSSUS_CHAT_HOST_URL', 'https://engine.kolossus.ai'),
 
     // The PUBLIC widget token (wt_...), from your widget in the Kolossus dashboard.
-    'widget_token' => env('KOLOSSUS_CHAT_WIDGET_TOKEN', ''),
+    // Not set (or empty): the free FAQ assistant, so the chat works on a server whose
+    // environment has no token line. (A plain string, not ChatConfig::FREE_TOKEN: a
+    // published copy of this file must still load after the package is removed.)
+    'widget_token' => env('KOLOSSUS_CHAT_WIDGET_TOKEN') ?: 'free-laravel',
 
     // Optional widget secret (ws_...). It stays on your server: it only signs the email
     // of a logged-in user so the chat knows who they are. Never put it anywhere else.

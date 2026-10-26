@@ -23,6 +23,22 @@ class ChatConfigTest extends TestCase
         $this->assertTrue($cfg->sitewide);
     }
 
+    public function test_config_file_defaults_to_the_free_faq_assistant(): void
+    {
+        $file = __DIR__.'/../config/kolossus-chat.php';
+        try {
+            foreach ([false, ''] as $value) {
+                // Not set, or set but empty: the free FAQ assistant
+                putenv($value === false ? 'KOLOSSUS_CHAT_WIDGET_TOKEN' : 'KOLOSSUS_CHAT_WIDGET_TOKEN=');
+                $this->assertSame('free-laravel', (require $file)['widget_token'], var_export($value, true));
+            }
+            putenv('KOLOSSUS_CHAT_WIDGET_TOKEN=wt_abcdefgh12345678');
+            $this->assertSame('wt_abcdefgh12345678', (require $file)['widget_token']);
+        } finally {
+            putenv('KOLOSSUS_CHAT_WIDGET_TOKEN');
+        }
+    }
+
     public function test_missing_token_is_not_configured_without_problems(): void
     {
         $cfg = $this->config(['widget_token' => '']);

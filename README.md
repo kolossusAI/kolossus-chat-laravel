@@ -5,29 +5,35 @@ Laravel 10, 11, 12 and 13 (PHP 8.1+).
 
 ## Install
 
-In your Kolossus dashboard open your website widget, click **Plugins → Laravel** and
-copy the command. It looks like this; run it in your Laravel project folder (the one
-with `artisan`):
+Run this in your Laravel project folder (the one with `artisan`):
 
 ```sh
-composer require kolossusai/chat-laravel && php artisan kolossus:install wt_YOUR_TOKEN
+composer require kolossusai/chat-laravel
 ```
 
-That's it: every page now shows the chat bubble. Also add your site's domain to the
-widget's **allowed domains** in Kolossus, or the chat will not open there.
+Laravel turns the package on by itself (package discovery) and it adds the chat bubble to
+every page; nothing else in your project changes. With no token set, the chat is the
+[free FAQ assistant](#free-faq-assistant-no-kolossus-account-needed).
 
-`kolossus:install` writes two lines into your `.env` file and changes nothing else:
+Then add your widget token (from Kolossus: your website widget's **Plugins → Laravel**) to
+your environment variables (usually the `.env` file, or your server's settings):
 
 ```dotenv
-KOLOSSUS_CHAT_HOST_URL=https://engine.kolossus.ai
 KOLOSSUS_CHAT_WIDGET_TOKEN=wt_YOUR_TOKEN
 ```
 
-On a server, set the same two values where your host keeps environment variables
-(Forge, Vapor, Docker, ...). If you cache your config (`php artisan config:cache`),
-run it again after changing them.
+That's it: every page now shows your own chat. Also add your site's domain to the widget's
+**allowed domains** in Kolossus, or the chat will not open there. If `.env` already has a
+`KOLOSSUS_CHAT_WIDGET_TOKEN` line, change it rather than adding a second one (Laravel uses
+the first).
 
-Windows PowerShell 5 does not understand `&&`: run the two commands one after the other.
+On your live server, set your token the same way (in its `.env`, or where your host keeps
+environment variables: Forge, Vapor, Docker, ...). Without a token there, the live site
+shows the free FAQ assistant. If you cache your config (`php artisan config:cache`), run it
+again after changing them.
+
+Optional: `php artisan kolossus:install` writes the token line into `.env` for you
+(`php artisan kolossus:install wt_YOUR_TOKEN`, or `free-laravel` without a token).
 
 ## Free FAQ assistant (no Kolossus account needed)
 
@@ -36,11 +42,11 @@ questions about your website: products, prices, policies, opening hours,
 contact details and more.
 
 ```sh
-composer require kolossusai/chat-laravel && php artisan kolossus:install
+composer require kolossusai/chat-laravel
 ```
 
-That's it: every page now shows the chat bubble. On a server, set
-`KOLOSSUS_CHAT_WIDGET_TOKEN=free-laravel` where your host keeps environment variables.
+That's it: every page now shows the chat bubble, also on your live server: with no
+`KOLOSSUS_CHAT_WIDGET_TOKEN` set, the package uses the free FAQ assistant.
 
 **What you get**
 
@@ -55,8 +61,8 @@ That's it: every page now shows the chat bubble. On a server, set
 * You can change the colour, layout, bubble corner, size and more: see [Look](#look) below.
 
 **Need more?** For more messages or your own trained agent, contact the
-KolossusAI team at [kolossusai.in](https://kolossusai.in), then switch to your
-widget token: `php artisan kolossus:install wt_YOUR_TOKEN`
+KolossusAI team at [kolossusai.in](https://kolossusai.in), then add your widget token to
+your environment variables (usually the `.env` file): `KOLOSSUS_CHAT_WIDGET_TOKEN=wt_YOUR_TOKEN`
 
 ## Put the chat where you want it
 
@@ -132,7 +138,9 @@ composer remove kolossusai/chat-laravel
 ```
 
 `--undo` removes the two lines `kolossus:install` added; other `KOLOSSUS_CHAT_` lines
-you added yourself stay.
+you added yourself stay. While the package is installed the chat stays (as the free FAQ
+assistant, with no token set): `composer remove` takes it off, or set
+`KOLOSSUS_CHAT_SITEWIDE=false` to keep only the Blade directives.
 
 ## Self-hosted Kolossus
 
