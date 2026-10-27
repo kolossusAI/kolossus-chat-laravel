@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as IlluminateResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use KolossusAI\Chat\KolossusChat;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,11 +35,19 @@ class InjectChatWidget
     /** Request headers of partial page updates, which must not get a second bubble. */
     private const PARTIAL_HEADERS = ['X-Livewire', 'X-Inertia', 'Turbo-Frame', 'HX-Request'];
 
-    public function __construct(private readonly KolossusChat $chat)
+    /** @var KolossusChat */
+    private $chat;
+
+    // PHP 7.4 syntax throughout (Laravel 8 sites): no promoted/readonly properties or mixed type.
+    public function __construct(KolossusChat $chat)
     {
+        $this->chat = $chat;
     }
 
-    public function handle(Request $request, Closure $next): mixed
+    /**
+     * @return mixed
+     */
+    public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
         try {
@@ -58,9 +67,9 @@ class InjectChatWidget
             $response instanceof StreamedResponse
             || $response instanceof BinaryFileResponse
             || $response->getStatusCode() !== 200
-            || ! str_starts_with(strtolower((string) $response->headers->get('Content-Type', '')), 'text/html')
+            || ! Str::startsWith(strtolower((string) $response->headers->get('Content-Type', '')), 'text/html')
             || $response->headers->has('Content-Encoding')
-            || str_contains(strtolower((string) $response->headers->get('Content-Disposition', '')), 'attachment')
+            || Str::contains(strtolower((string) $response->headers->get('Content-Disposition', '')), 'attachment')
             || $request->attributes->get(KolossusChat::SCRIPT_DONE)
         ) {
             return;
@@ -81,7 +90,7 @@ class InjectChatWidget
 
         $content = $response->getContent();
         // Our own script URL only: a site may well have its own /static/widget/widget.js.
-        if (! is_string($content) || str_contains($content, 'data-kolossus=') || str_contains($content, $cfg->scriptUrl())) {
+        if (! is_string($content) || Str::contains($content, 'data-kolossus=') || Str::contains($content, $cfg->scriptUrl())) {
             return;
         }
         // The last </body> of the page; tolerant of case and whitespace (</BODY >).

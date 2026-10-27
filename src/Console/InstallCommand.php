@@ -3,6 +3,7 @@
 namespace KolossusAI\Chat\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use KolossusAI\Chat\ChatConfig;
 
 /**
@@ -91,7 +92,7 @@ class InstallCommand extends Command
                 return $this->failWith($e->getMessage().' Add these lines to your .env by hand:', ChatConfig::FREE_TOKEN);
             }
         }
-        if (str_starts_with($token, 'ws_')) {
+        if (Str::startsWith($token, 'ws_')) {
             return $this->failWith('That is the widget secret (ws_...). Keep it private; pass the public widget token, which starts with wt_.');
         }
         if (! preg_match(ChatConfig::TOKEN_PATTERN, $token)) {
@@ -112,7 +113,7 @@ class InstallCommand extends Command
     private function install(string $path, string $text, string $hostUrl, string $token): int
     {
         $values = [self::HOST_KEY => $hostUrl, self::TOKEN_KEY => $token];
-        $nl = str_contains($text, "\r\n") ? "\r\n" : "\n";
+        $nl = Str::contains($text, "\r\n") ? "\r\n" : "\n";
         $new = $text;
         $missing = [];
         foreach ($values as $key => $value) {
@@ -123,7 +124,7 @@ class InstallCommand extends Command
             }
         }
         if ($missing !== []) {
-            if ($new !== '' && ! str_ends_with($new, "\n")) {
+            if ($new !== '' && ! Str::endsWith($new, "\n")) {
                 $new .= $nl;
             }
             $new .= ($new === '' ? '' : $nl).implode($nl, [self::COMMENT, ...$missing]).$nl;
@@ -154,7 +155,8 @@ class InstallCommand extends Command
 
     private function undo(string $path, string $text): int
     {
-        $new = preg_replace('/^'.preg_quote(self::COMMENT, '/').'[^\S\r\n]*(?:\r?\n|\z)/m', '', $text);
+        // Also the one blank line install() put before the comment, so .env is as it was.
+        $new = preg_replace('/(?:^[^\S\r\n]*\r?\n)?^'.preg_quote(self::COMMENT, '/').'[^\S\r\n]*(?:\r?\n|\z)/m', '', $text);
         foreach ([self::HOST_KEY, self::TOKEN_KEY] as $key) {
             $new = preg_replace(substr($this->linePattern($key), 0, -2).'(?:\r?\n|\z)/m', '', $new);
         }

@@ -55,8 +55,11 @@ class KolossusChat
      * @kolossusChatButton('Chat with us', 'btn'): a button that opens the chat.
      *
      * Any label (string, number, HtmlString, ...) is shown as escaped text.
+     *
+     * @param  mixed  $label
+     * @param  mixed  $class
      */
-    public function button(mixed $label = null, mixed $class = ''): HtmlString
+    public function button($label = null, $class = ''): HtmlString
     {
         return $this->safely(function (ChatConfig $cfg) use ($label, $class) {
             $request = $this->currentRequest();
@@ -68,7 +71,7 @@ class KolossusChat
             $html = view('kolossus-chat::button', [
                 'classes' => implode(' ', ['kolossus-chat-button', ...$extra]),
                 'attrs' => $this->triggerAttributes($request, $cfg),
-                'label' => is_scalar($label) || $label instanceof \Stringable ? (string) $label : '',
+                'label' => self::isText($label) ? (string) $label : '',
             ])->render();
 
             return $this->scriptOnce($request, $cfg).trim($html);
@@ -171,7 +174,7 @@ class KolossusChat
         }
         try {
             $user = $request->user();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // No auth guard configured (an app without users): nobody to sign.
             return [];
         }
@@ -191,10 +194,25 @@ class KolossusChat
         ];
     }
 
-    /** A user field as trimmed text; '' for values that are not text (arrays, objects). */
-    private function text(mixed $value): string
+    /**
+     * A user field as trimmed text; '' for values that are not text (arrays, objects).
+     *
+     * @param  mixed  $value
+     */
+    private function text($value): string
     {
-        return is_scalar($value) || $value instanceof \Stringable ? trim((string) $value) : '';
+        return self::isText($value) ? trim((string) $value) : '';
+    }
+
+    /**
+     * A scalar, or an object with __toString (what PHP 8 calls \Stringable; PHP 7.4
+     * has no such interface, and instanceof it would be false there).
+     *
+     * @param  mixed  $value
+     */
+    private static function isText($value): bool
+    {
+        return is_scalar($value) || (is_object($value) && method_exists($value, '__toString'));
     }
 
     private function currentRequest(): ?Request

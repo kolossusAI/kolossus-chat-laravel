@@ -87,7 +87,10 @@ class ChatConfigTest extends TestCase
         ];
     }
 
-    #[DataProvider('hostUrls')]
+    /**
+     * @dataProvider hostUrls
+     */
+    #[DataProvider('hostUrls')] // PHPUnit 10+; the annotation above is for PHPUnit 9 (Laravel 8/9)
     public function test_host_url_rules(string $value, string $expected): void
     {
         $this->assertSame($expected, ChatConfig::cleanHostUrl($value));

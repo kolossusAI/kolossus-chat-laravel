@@ -1,7 +1,7 @@
 # KolossusAI Chat for Laravel
 
 Add your KolossusAI chat assistant to a Laravel site with one command. Works with
-Laravel 10, 11, 12 and 13 (PHP 8.1+).
+Laravel 8, 9, 10, 11, 12 and 13 (PHP 7.4+).
 
 ## Install
 

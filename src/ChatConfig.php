@@ -2,6 +2,8 @@
 
 namespace KolossusAI\Chat;
 
+use Illuminate\Support\Str;
+
 /**
  * The validated kolossus-chat config.
  *
@@ -82,7 +84,7 @@ final class ChatConfig
         $token = self::text($raw, 'widget_token');
         if ($token === self::FREE_TOKEN) {
             $cfg->widgetToken = $token;
-        } elseif (str_starts_with($token, 'ws_')) {
+        } elseif (Str::startsWith($token, 'ws_')) {
             $cfg->problems[] = 'KOLOSSUS_CHAT_WIDGET_TOKEN holds the widget secret (ws_...). Put it in '
                 .'KOLOSSUS_CHAT_WIDGET_SECRET instead; the widget token is the public one that starts with wt_.';
         } elseif ($token !== '' && ! preg_match(self::TOKEN_PATTERN, $token)) {
@@ -181,7 +183,7 @@ final class ChatConfig
         if (! preg_match('/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$|^[0-9a-f:.]+$/', $host)) {
             return '';
         }
-        if (str_contains($host, ':')) {
+        if (Str::contains($host, ':')) {
             $host = "[{$host}]";
         }
 
@@ -196,8 +198,12 @@ final class ChatConfig
         return is_scalar($value) && $value !== false ? trim((string) $value) : '';
     }
 
-    /** sitewide from config or .env: "false" / "0" / "no" / "off" turn it off; empty keeps it on. */
-    private static function flag(mixed $value): bool
+    /**
+     * sitewide from config or .env: "false" / "0" / "no" / "off" turn it off; empty keeps it on.
+     *
+     * @param  mixed  $value
+     */
+    private static function flag($value): bool
     {
         if (is_string($value)) {
             return ! in_array(strtolower(trim($value)), ['false', '0', 'no', 'off', '(false)'], true);
